@@ -28,6 +28,12 @@ def is_prefix? prefix, longer_string
   longer_string.to_s[0,p.length] == p
 end
 
+
+def path_folders
+  ENV['PATH'].split(':').collect{|p| File.expand_path p}.uniq
+end
+
+
 # Installing MacGPG2 interferes with Homebrew in a big way
 # http://sourceforge.net/projects/macgpg2/files/
 def check_for_macgpg2
@@ -240,9 +246,7 @@ def check_user_path
   seen_prefix_sbin = false
   seen_usr_bin = false
 
-  paths = ENV['PATH'].split(':').collect{|p| File.expand_path p}
-
-  paths.each do |p|
+  path_folders.each do |p|
     if p == '/usr/bin'
       seen_usr_bin = true
       unless seen_prefix_bin
@@ -375,8 +379,7 @@ def check_for_config_scripts
 
   config_scripts = []
 
-  paths = ENV['PATH'].split(':').collect{|p| File.expand_path p}
-  paths.each do |p|
+  path_folders.each do |p|
     next if ['/usr/bin', '/usr/sbin', '/usr/X11/bin', "#{HOMEBREW_PREFIX}/bin", "#{HOMEBREW_PREFIX}/sbin"].include? p
     next if p =~ %r[^(#{real_cellar.to_s}|#{HOMEBREW_CELLAR.to_s})]
 
@@ -441,7 +444,7 @@ def check_for_multiple_volumes
   real_cellar = HOMEBREW_CELLAR.realpath
 
   tmp_prefix = ENV['HOMEBREW_TEMP'] || '/tmp'
-  tmp=Pathname.new `/usr/bin/mktemp -d #{tmp_prefix}/homebrew-brew-doctor-XXXX`.strip
+  tmp = Pathname.new `/usr/bin/mktemp -d #{tmp_prefix}/homebrew-brew-doctor-XXXX`.strip
   real_temp = tmp.realpath.parent
 
   where_cellar = volumes.which real_cellar
@@ -559,10 +562,8 @@ def check_for_MACOSX_DEPLOYMENT_TARGET
 end
 
 def check_for_CLICOLOR_FORCE
-  target_var = ENV['CLICOLOR_FORCE']
-  return if target_var.to_s.empty?
-
-  unless target_var == MACOS_VERSION.to_s
+  target_var = ENV['CLICOLOR_FORCE'].to_s
+  unless target_var.empty?
     puts <<-EOS.undent
     $CLICOLOR_FORCE was set to #{target_var}
     Having $CLICOLOR_FORCE set can cause git installs to fail.
